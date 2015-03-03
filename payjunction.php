@@ -478,9 +478,11 @@ function init_jigoshop_payjunction_gateway() {
 				'shippingZip' => $order->shipping_postcode,
 				'shippingCountry' => $order->shipping_country,
 				'note' => "Customer ID: ".$order->user_id,
-				'invoiceNumber' => $order->id,
-				'avs' => $this->avsmode
+				'invoiceNumber' => $order->id
 			);
+			
+			if ($this->uselocalavs) $payjunction_request['avs'] = $this->avsmode;
+			
 			$total_amount += (float)$order->order_subtotal;
 			if (isset($order->order_shipping)) { // Add shipping amount
 				$payjunction_request['amountShipping'] = $order->order_shipping;
@@ -595,6 +597,7 @@ function init_jigoshop_payjunction_gateway() {
 							$order->add_order_note(__('Credit Card/Debit Card payment completed', 'jigoshop'));
 							$order->payment_complete();
 						}
+						if ($this->requestsignature) $this->send_pj_email($order, $transactionId);
 						return array(
 							'result' 	=> 'success',
 							'redirect'	=> add_query_arg('key', $order->order_key, add_query_arg('order', $order_id, get_permalink( $checkout_redirect )))
@@ -617,8 +620,8 @@ function init_jigoshop_payjunction_gateway() {
 					$order->add_order_note( $cancelNote );
 					// To (again) try and prevent multiple attempts when the decline is for AVS/CVV mismatch, use different error messages
 					
-					if ($this->is_fraud_decline($resp_code)) {
-						jigoshop::add_error(__('Payment error, before attempting to process again please contact us directly for assistance.', 'jigoshop'));
+					if ($this->is_fraud_decline($resp_code) && $this->fraudmsgenabled) {
+						jigoshop::add_error($this->fraudmsgtext);
 					} else {
 						jigoshop::add_error(__('Transaction Declined.', 'jigoshop'));
 					}
