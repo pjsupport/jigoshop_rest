@@ -43,6 +43,8 @@ function init_jigoshop_payjunction_gateway() {
 			$this->dynavsmode = $options->get('jigoshop_payjunction_dynamic_avs') == 'no' ? false : true;
 			$this->fraudmsgenabled = $options->get('jigoshop_payjunction_fraudmsgenabled') == 'yes' ? true : false;
 			$this->fraudmsgtext = $options->get('jigoshop_payjunction_fraudmsgtext');
+			$this->requestsignature = $options->get('jigoshop_payjunction_requestsignature') == 'yes' ? true : false;
+			$this->signotificationemail = $options->get('jigoshop_payjunction_signotificationemail');
 			
 			// See if we're in test mode and set the URL and login/password appropriately
 			$this->testmode = $options->get('jigoshop_payjunction_test_mode') == 'yes' ? true : false;
@@ -227,7 +229,7 @@ function init_jigoshop_payjunction_gateway() {
 			
 			$defaults[] = array(
 				'name' => __('Email Signature Request', 'jigoshop'),
-				'desc' => __('Tells PayjUnction to email a copy of the receipt with a request to sign for the purchase.', 'jigoshop'),
+				'desc' => __('Tells PayJunction to email a copy of the receipt with a request to sign for the purchase.', 'jigoshop'),
 				'id' => 'jigoshop_payjunction_requestsignature',
 				'std' => 'yes',
 				'type' => 'checkbox',
