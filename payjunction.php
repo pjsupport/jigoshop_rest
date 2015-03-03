@@ -33,16 +33,19 @@ function init_jigoshop_payjunction_gateway() {
 			$this->id = 'payjunction';
 			$this->icon = PAYJUNCTION_DIR.'/assets/pjLogoBlack160x40.png';
 			$this->has_fields = true;
-			$this->enabled = $options->get('jigoshop_payjunction_enabled');
+			$this->enabled = $options->get('jigoshop_payjunction_enabled') == 'yes' ? true : false;
 			$this->title = $options->get('jigoshop_payjunction_title');
 			$this->description = $options->get('jigoshop_payjunction_description');
 			$this->show_description = $options->get('jigoshop_payjunction_show_description') == 'yes' ? true : false;
 			$this->cvvmode = $options->get('jigoshop_payjunction_disable_cvv') == 'no' ? true : false;
+			$this->uselocalavs = $options->get('jigoshop_payjunction_uselocalavs') == 'yes' ? true : false;
 			$this->avsmode = $options->get('jigoshop_payjunction_avs_mode');
 			$this->dynavsmode = $options->get('jigoshop_payjunction_dynamic_avs') == 'no' ? false : true;
+			$this->fraudmsgenabled = $options->get('jigoshop_payjunction_fraudmsgenabled') == 'yes' ? true : false;
+			$this->fraudmsgtext = $options->get('jigoshop_payjunction_fraudmsgtext');
+			
 			// See if we're in test mode and set the URL and login/password appropriately
 			$this->testmode = $options->get('jigoshop_payjunction_test_mode') == 'yes' ? true : false;
-			
 			if ($this->testmode) {
 				$this->apilogin = 'pj-ql-01';
 				$this->apipassword = 'pj-ql-01p';
@@ -149,6 +152,18 @@ function init_jigoshop_payjunction_gateway() {
 			);
 			
 			$defaults[] = array(
+				'name' => __('Use Local Address Verification Security Settings', 'jigoshop'),
+				'desc' => __('Enables the option to use the local AVS settings below instead of the options set directly in your PayJunction account.', 'jigoshop'),
+				'id' => 'jigoshop_payjunction_uselocalavs',
+				'std' => 'yes',
+				'type' => 'checkbox',
+				'choices' => array(
+					'yes' => __('Yes', 'jigoshop'),
+					'no' => __('No', 'jigoshop')
+				)
+			);
+			
+			$defaults[] = array(
 				'name' => __('Address Verification Security', 'jigoshop'),
 				'desc' => __("This tells PayJunction what conditions to automatically void a transaction under depending on if the street address and/or zip code match
 							(if Dynamic Bypass Mode is not selected below) or put on Hold status (if Dynamic Bypass Mode is enabled).
@@ -191,6 +206,46 @@ function init_jigoshop_payjunction_gateway() {
 			);
 			
 			$defaults[] = array(
+				'name' => __('Enable Faud Special Response', 'jigoshop'),
+				'desc' => __('When enabled, send a special message instead of simply saying "Transaction Declined" to prevent multiple card authorizations', 'jigoshop'),
+				'id' => 'jigoshop_payjunction_fraudmsgenabled',
+				'std' => 'yes',
+				'type' => 'checkbox',
+				'choices' => array(
+					'yes' => __('Yes', 'jigoshop'),
+					'no' => __('No', 'jigoshop')
+				)
+			);
+			
+			$defaults[] = array(
+				'name' => __('Fraud Special Response Text', 'jigoshop'),
+				'desc' => __('Customize the message given for fraud declines.', 'jigoshop'),
+				'id' => 'jigoshop_payjunction_fraudmsgtext',
+				'std' => __('Payment error. Before attempting to process again, please contact us directly for assistance.', 'jigoshop'),
+				'type' => 'textarea'
+			);
+			
+			$defaults[] = array(
+				'name' => __('Email Signature Request', 'jigoshop'),
+				'desc' => __('Tells PayjUnction to email a copy of the receipt with a request to sign for the purchase.', 'jigoshop'),
+				'id' => 'jigoshop_payjunction_requestsignature',
+				'std' => 'yes',
+				'type' => 'checkbox',
+				'choices' => array(
+					'yes' => __('Yes', 'jigoshop'),
+					'no' => __('No', 'jigoshop')
+				)
+			);
+			
+			$defaults[] = array(
+				'name' => __('Send Signed Receipt Notification to', 'jigoshop'),
+				'desc' => __('Email address to send the signed receipt notification to.', 'jigoshop'),
+				'id' => 'jigoshop_payjunction_signotificationemail',
+				'std' => 'no-reply@payjunction.com',
+				'type' => 'text'
+			);
+			
+			$defaults[] = array(
 				'name' => __('Method Title', 'jigoshop'),
 				'desc' => '',
 				'tip' => __('This controls the title which the user sees during checkout.', 'jigoshop'),
@@ -230,6 +285,7 @@ function init_jigoshop_payjunction_gateway() {
 			/*<! [CDATA[*/
 				jQuery(function($) {
 					$('#jigoshop_payjunction_api_password').attr('type', 'password');
+					$('#jigoshop_payjunction_signotificationemail').attr('size', '30');
 					<?php 
 					if ($this->ssl_enforced == 'no') {
 						?>
