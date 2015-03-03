@@ -638,9 +638,18 @@ function init_jigoshop_payjunction_gateway() {
 			return in_array($resp, $fraud_declines);
 		}
 		
-		/**
+		function send_pj_email($order, $txnid) {
+			if (isset($this->signotificationemail) && !empty($this->signotificationemail)) {
+				$post = http_build_query(array('to' => $order->billing_email, 'replyTo' => $this->signotificationemail, 'requestSignature' => 'true'));
+				$this->process_rest_request('POST', $post, $txnid.'/receipts/latest/email');
+			} else {
+				$order->add_order_note("Could not email signature request because there was no email address to send the notification to.");
+			}
+		}
+		
+		/*
 		Validate payment form fields
-		**/
+		*/
 		
 		public function validate_fields() {
 			
