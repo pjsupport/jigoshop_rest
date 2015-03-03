@@ -41,7 +41,7 @@ function init_jigoshop_payjunction_gateway() {
 			$this->avsmode = $options->get('jigoshop_payjunction_avs_mode');
 			$this->dynavsmode = $options->get('jigoshop_payjunction_dynamic_avs') == 'no' ? false : true;
 			// See if we're in test mode and set the URL and login/password appropriately
-			$this->testmode = $options->get('jigoshop_payjunction_test_mode');
+			$this->testmode = $options->get('jigoshop_payjunction_test_mode') == 'yes' ? true : false;
 			
 			if ($this->testmode) {
 				$this->apilogin = 'pj-ql-01';
@@ -229,13 +229,51 @@ function init_jigoshop_payjunction_gateway() {
 			<script type="text/javascript">
 			/*<! [CDATA[*/
 				jQuery(function($) {
-					jQuery('#jigoshop_payjunction_api_password').attr('type', 'password');
+					$('#jigoshop_payjunction_api_password').attr('type', 'password');
 					<?php 
 					if ($this->ssl_enforced == 'no') {
 						?>
 						jQuery('body').append('<?php echo $no_ssl; ?>');
 						<?php
+					}
+					if (!function_exists('curl_version')) {
+						$no_curl = '<div class="error"><p>The cURL extension for PHP is not installed and transactions will not run!</p></div>';
+						?>
+						jQuery('body').append('<?php echo $no_curl?>');
+						<?php
 					} ?>
+					
+					// Add test button for API credentials
+					var $apiTest = $('<button>Test Credentials</button>');
+					$apiTest.click(function(event) {
+						event.preventDefault();
+						
+						var login = $('#jigoshop_payjunction_api_login').val();
+						var pass = $('#jigoshop_payjunction_api_password').val();
+						
+						var credentials = 'login=' + encodeURIComponent(login) + '&pass=' + encodeURIComponent(pass);
+						
+						$.post('<?php echo plugins_url('pjApiCheck.php', __FILE__) ?>', credentials, function(data) {
+							var response;
+							try {
+								response = JSON.parse(data);
+							} catch (err) {
+								// Do nothing for security reasons but let's give a response
+								response = {'status': 'error', 'type': 'Invalid response', 'message': 'Could not parse the response from pjApiCheck.php'};
+							} finally {
+								if (response['status'] === 'success') {
+									alert('Success! Your API login and password are valid.');
+								} else if (response['status'] === 'failure') {
+									alert('Failure: The API login and password are not valid.');
+								} else if (response['status'] === 'error') {
+									alert("There was an error: \n" + response['type'] + ":\n" + response['message']);
+								} else {
+									alert("Could not check credentials due to an unknown error");
+								}
+							}
+						});
+					});
+					$('#jigoshop_payjunction_api_password').after($apiTest);
 				});
 				
 			/*]]>*/
@@ -246,7 +284,8 @@ function init_jigoshop_payjunction_gateway() {
 		function payment_fields() {
 			if ($this->description && $this->show_description) {
 				echo wpautop(wptexturize($this->description));
-			} 
+			}
+			if ($this->testmode) echo '<span style="color:red;">The PayJunction module is currently in testing mode, the credit card will not actually be charged.</span>';
 			?>
 			<fieldset>
 				<p>
@@ -339,6 +378,7 @@ function init_jigoshop_payjunction_gateway() {
 			
 			$content = curl_exec($ch);
 			$curl_errno = curl_errno($ch);
+			$curl_error = curl_error($ch);
 			curl_close($ch);
 			
 			if ($curl_errno) {
@@ -514,7 +554,7 @@ function init_jigoshop_payjunction_gateway() {
 					
 				} else {
 					// Non-successful Payment (boo...)
-					$cancelNote = __('PayJunction payment failed', 'jigoshop') . ' (Code: ' . $resp_code . ', Message: ' . $content['response']['message'] . '). ';
+					$cancelNote = __(sprintf('PayJunction payment failed (Code: %s, Message: %s).', $resp_code, $content['response']['message']), 'jigoshop');
 			
 					$order->add_order_note( $cancelNote );
 					// To (again) try and prevent multiple attempts when the decline is for AVS/CVV mismatch, use different error messages
