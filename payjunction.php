@@ -498,12 +498,12 @@ function init_jigoshop_payjunction_gateway() {
 				$tax = $payjunction_request['amountTax'];
 				$s_tax = (float)$order->order_shipping_tax;
 				$total_tax = $tax + $s_tax;
-				$payjunction_request['amountTax'] = sprintf("%.2f", $total_tax);
+				$payjunction_request['amountTax'] = number_format($total_tax, 2, ".", "");
 				$total_amount += (float)$order->order_shipping_tax;
 			}
 			
 			// Make sure that we've added everything together by comparing with the total amount we've collected so far
-			if (sprintf("%.2f", $order->order_total) != sprintf("%.2f", $total_amount)) {
+			if (number_format((float)$order->get_total(), 2, ".", "") != number_format((float)$total_amount, 2, ".", "")) {
 				// For some reason, we haven't gotten all the costs. Run the base amount as the order total and remove the shipping and tax
 				// to make sure we don't undercharge or overcharge the customer.
 				$payjunction_request['amountTax'] = '';
